@@ -3,10 +3,6 @@ body {
   margin: 20px;
 }
 
-ol, ul {
-  padding-left: 30px;
-}
-
 .board-row:after {
   clear: both;
   content: "";
@@ -15,7 +11,6 @@ ol, ul {
 
 .square {
   background: #fff;
-  border: 1px solid #999;
   float: left;
   font-size: 48px;
   font-weight: bold;
@@ -37,6 +32,10 @@ ol, ul {
 }
 
 .square:focus {
+  outline: none;
+}
+
+.list-group-item:focus {
   outline: none;
 }
 

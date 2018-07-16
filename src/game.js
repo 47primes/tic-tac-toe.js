@@ -1,7 +1,10 @@
 import React from 'react'
-import UI from './ui'
 import Move from './move'
 import Player from './player'
+import Board from './board'
+import StatusMessage from './statusMessage'
+import History from './history'
+import { Navbar, Nav, NavItem } from 'react-bootstrap'
 
 const Game = class extends React.Component {
   static winningMoves = [
@@ -175,20 +178,40 @@ const Game = class extends React.Component {
     });
 
     return (
-      <UI
-        moves={moves}
-        currentMoves={moves.slice(0, this.state.step)}
-        lastMove={this.state.lastMove}
-        currentPlayer={this.currentPlayer()}
-        step={this.state.step}
-        isGameOver={this.isGameOver()}
-        hasWinner={this.state.hasWinner}
-        isCatsGame={this.state.isCatsGame}
-        isHumanMove={this.isHumanMove()}
-        reset={() => this.reset()}
-        jumpTo={(i) => this.jumpTo(i)}
-        move={(x,y) => this.move(x,y)}
-      />
+      <div>
+        <Navbar>
+          <Navbar.Header>
+            <Navbar.Brand>Tic-Tac-Toe</Navbar.Brand>
+            <Navbar.Toggle />
+          </Navbar.Header>
+          <Navbar.Collapse>
+            <Nav>
+              <NavItem onClick={() => this.reset()}>New Game</NavItem>
+            </Nav>
+            <Nav pullRight>
+              <History
+                showHistory={this.isGameOver()}
+                moves={moves}
+                step={this.state.step}
+                currentPlayer={this.currentPlayer()}
+                jumpTo={(i) => this.jumpTo(i)}
+              />
+            </Nav>
+          </Navbar.Collapse>
+        </Navbar>
+        <StatusMessage
+          hasWinner={this.state.hasWinner}
+          isCatsGame={this.state.isCatsGame}
+          currentPlayer={this.currentPlayer()}
+        />
+        <Board
+          moves={moves.slice(0, this.state.step)}
+          totalMoves={moves.length}
+          isHumanMove={this.isHumanMove()}
+          step={this.state.step}
+          onClick={(x, y) => this.move(x, y)}
+        />
+      </div>
     );
   }
 }
