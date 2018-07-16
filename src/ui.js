@@ -1,19 +1,14 @@
 import React, { Component } from 'react'
 import { Navbar, Nav, NavItem } from 'react-bootstrap'
-import Helper from './lib/helper'
-import Board from './board';
-import StatusMessage from './statusMessage';
-import History from './history';
+import Board from './board'
+import StatusMessage from './statusMessage'
+import History from './history'
 
-const GameBoard = class extends Component {
+const UI = class extends Component {
   render() {
-    const history = this.props.history;
-    const current = history[this.props.stepNumber];
-    const squares = Helper.clone(current.squares);
-
     return (
       <div>
-        <Navbar inverse>
+        <Navbar>
           <Navbar.Header>
             <Navbar.Brand>Tic-Tac-Toe</Navbar.Brand>
             <Navbar.Toggle />
@@ -24,24 +19,28 @@ const GameBoard = class extends Component {
             </Nav>
             <Nav pullRight>
               <History
-                showHistory={this.props.winner || this.props.catsGame}
-                history={history}
+                showHistory={this.props.isGameOver}
+                moves={this.props.moves}
+                step={this.props.step}
+                currentPlayer={this.props.currentPlayer}
                 jumpTo={(i) => this.props.jumpTo(i)}
               />
             </Nav>
           </Navbar.Collapse>
         </Navbar>
         <StatusMessage
-          winner={this.props.winner}
-          catsGame={this.props.catsGame}
-          userMove={this.props.userMove}
-          currentShape={this.props.currentShape}
+          hasWinner={this.props.hasWinner}
+          isCatsGame={this.props.isCatsGame}
+          currentPlayer={this.props.currentPlayer}
         />
         <div className="game">
           <div className="game-board center-block">
             <Board
-              squares={squares}
-              userMove={this.props.userMove}
+              moves={this.props.currentMoves}
+              totalMoves={this.props.moves.length}
+              winningMoves={this.props.winningMoves}
+              isHumanMove={this.props.isHumanMove}
+              step={this.props.step}
               onClick={(x, y) => this.props.move(x, y)}
             />
           </div>
@@ -51,4 +50,4 @@ const GameBoard = class extends Component {
   }
 }
 
-export default GameBoard;
+export default UI;

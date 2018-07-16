@@ -28,6 +28,14 @@ ol, ul {
   width: 68px;
 }
 
+.human-highlight {
+  background: #d9edf7;
+}
+
+.computer-highlight {
+  background: #f2dede;
+}
+
 .square:focus {
   outline: none;
 }

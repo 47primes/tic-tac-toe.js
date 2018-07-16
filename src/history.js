@@ -3,21 +3,15 @@ import { Popover, OverlayTrigger, NavItem, ListGroup, ListGroupItem } from 'reac
 
 const History = class extends Component {
   render() {
-    const moves = this.props.history.map((board, step) => {
-      let desc;
-
-      if (board.move) {
-        desc = step + '. ' + board.move.player + ' moved ' + board.move.shape + ' to (' +board.move.loc[0] + ', ' + board.move.loc[1] + ')';
-      } else {
-        desc = 'Beginning of Game';
-      }
-
+    const moves = [{order: 0, description: 'Beginning of Game'}, ...this.props.moves];
+    const history = moves.map((move) => {
       return (
         <ListGroupItem
-          key={step}
-          onClick={() => (this.props.showHistory ? this.props.jumpTo(step) : null)}
+          bsStyle={move.order === this.props.step ? 'warning' : null}
+          key={move.order}
+          onClick={() => (this.props.showHistory ? this.props.jumpTo(move.order) : null)}
         >
-          {desc}
+          <div>{move.description}</div>
         </ListGroupItem>
       );
     });
@@ -25,7 +19,7 @@ const History = class extends Component {
     const popoverBottom = (
       <Popover id="popover-positioned-bottom">
         <ListGroup>
-          {moves}
+          {history}
         </ListGroup>
       </Popover>
     );

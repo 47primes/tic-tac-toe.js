@@ -1,20 +1,9 @@
-import React from 'react';
-import GameBoard from './gameBoard';
-import Helper from './lib/helper';
+import React from 'react'
+import UI from './ui'
+import Move from './move'
+import Player from './player'
 
 const Game = class extends React.Component {
-  static defaultState = {
-    history: [{
-      squares: [
-        Array(3).fill(null),
-        Array(3).fill(null),
-        Array(3).fill(null),
-      ],
-    }],
-    currentShape: 'X',
-    stepNumber: 0,
-  };
-
   static winningMoves = [
     [
       {x: 0, y: 0}, {x: 0, y: 1}, {x: 0, y: 2}
@@ -42,120 +31,160 @@ const Game = class extends React.Component {
     ],
   ];
 
+  static defaultMoves() {
+    let moves = Array(0);
+    for (let x=0; x < 3; x++) {
+      for (let y=0; y < 3; y++) {
+        moves.push(new Move(x,y));
+      }
+    }
+    return moves.slice();
+  }
+
+  static defaultPlayers() {
+    let shapes = ['X', 'O'];
+    if (Math.floor(Math.random() * 1000) % 2 === 0) shapes.reverse();
+
+    let players = [new Player('You', shapes[0]), new Player('Computer', shapes[1], false)];
+    if (Math.floor(Math.random() * 1000) % 2 === 0) players.reverse();
+
+    return players.slice();
+  }
+
   constructor(props) {
     super(props);
-    this.state = Helper.clone({...Game.defaultState, userMove: Helper.randomFlag()});
+    this.state = {
+      step: 0,
+      moves: Game.defaultMoves(),
+      players: Game.defaultPlayers(),
+    };
   }
 
   componentDidMount() {
-    if (!this.state.userMove) this.computerMove();
+    if (this.isComputerMove()) this.computerMove();
+  }
+
+  currentPlayer() {
+    return this.state.players[0];
+  }
+
+  isHumanMove() {
+    return this.currentPlayer().isHuman;
+  }
+
+  isComputerMove() {
+    return this.currentPlayer().isComputer();
+  }
+
+  isGameOver() {
+    return this.state.hasWinner || this.state.isCatsGame;
   }
 
   move(x,y) {
-    if (this.state.winner || this.state.catsGame) return;
+    if (this.isGameOver()) return;
 
-    const history = this.state.history;
-    const current = history[history.length - 1];
-    const squares = Helper.clone(current.squares);
+    const moves = this.state.moves.slice();
+    const move = moves.find((move) => {
+      return move.x === x && move.y === y;
+    });
 
-    if (squares[x][y]) return;
+    if (!move) throw Error('Invalid position');
+    if (move.value) return;
 
-    squares[x][y] = this.state.currentShape;
-    this.setState({
-      history: history.concat([{
-        squares: squares,
-        move: {player: (this.state.userMove ? 'You' : 'Computer'), shape: this.state.currentShape, loc: [x,y]},
-      }]),
-      currentShape: this.nextShape(this.state.currentShape),
-      stepNumber: history.length,
-      userMove: !this.state.userMove,
-    }, () => this.calculateWinner());
+    let moveIndex = moves.findIndex((move) => {
+      return move.x === x && move.y === y;
+    });
+
+    let moveOrder = moves.filter((move) => {
+      return move.value;
+    }).length;
+
+    move.makeMove(this.currentPlayer(), moveOrder + 1);
+    moves[moveIndex] = move;
+
+    let winningMoves = this.calculateWinningMoves(moves);
+    let isCatsGame = this.isCatsGame(moves);
+
+    let newState = {
+      step: this.state.step + 1,
+      moves: moves,
+      lastMove: move,
+      hasWinner: !!winningMoves,
+      isCatsGame: isCatsGame,
+    }
+
+    if (!winningMoves && !isCatsGame) {
+      newState.players = this.state.players.reverse();
+    }
+
+    this.setState(newState, () => this.computerMove());
   }
 
   computerMove() {
-    if (this.state.userMove || this.state.winner || this.state.catsGame) return;
+    if (this.isHumanMove() || this.isGameOver()) return;
 
-    const history = this.state.history;
-    const current = history[history.length - 1];
-    const availableMoves = Array(0);
+    const availableMoves = this.state.moves.filter((move) => !move.value);
 
-    for (let x = 0; x < current.squares.length; x++) {
-      for (let y = 0; y < current.squares[x].length; y++) {
-        if (current.squares[x][y] === null) {
-          availableMoves.push([x, y]);
-        }
-      }
-    }
-
-    const loc = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-    if (loc) setTimeout(() => this.move(loc[0], loc[1]), 1000);
+    const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    if (move) setTimeout(() => this.move(move.x, move.y), 1000);
   }
 
-  nextShape(currentShape) {
-    return (currentShape === 'X' ? 'O' : 'X');
-  }
-
-  calculateWinner() {
-    const history = this.state.history;
-    const current = history[history.length - 1];
-    const squares = Helper.clone(current.squares);
-
-    let winner = null;
-
+  calculateWinningMoves(moves) {
     for (let i=0; i < Game.winningMoves.length; i++) {
       const [a, b, c] = Game.winningMoves[i];
-      if (squares[a.x][a.y] && squares[a.x][a.y] === squares[b.x][b.y] && squares[a.x][a.y] === squares[c.x][c.y]) {
-        winner = squares[a.x][a.y];
-        break;
-      }
-    }
+      const moveA = moves.find((move) => move.x === a.x && move.y === a.y);
+      const moveB = moves.find((move) => move.x === b.x && move.y === b.y);
+      const moveC = moves.find((move) => move.x === c.x && move.y === c.y);
 
-    this.setState({winner: winner}, () => {
-      if (!winner) this.calculateCatsGame();
-    });
+      if (moveA.value && moveA.value === moveB.value && moveA.value === moveC.value) {
+        return moveA.highlight = moveB.highlight = moveC.highlight = (this.isComputerMove() ? 'computer' : 'human');
+      };
+    }
+    return false;
   }
 
-  calculateCatsGame() {
-    const history = this.state.history;
-    const current = history[history.length - 1];
-    const squares = Helper.clone(current.squares);
-    const flattenedSquares = [].concat(...squares);
-
-    this.setState({catsGame: !this.state.winner && !flattenedSquares.includes(null)}, () => {
-      this.computerMove();
-    });
+  isCatsGame(moves) {
+    for (let i=0; i<moves.length; i++) {
+      let move = moves[i];
+      if (!move.value) return false;
+    }
+    return true;
   }
 
   jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      currentShape: (step % 2 === 0 ? 'X' : 'O'),
-    });
+    this.setState({step: step});
   }
 
   reset() {
-    this.setState(
-      Helper.clone({...Game.defaultState, userMove: Helper.randomFlag(),
-        winner: null,
-        catsGame: false
-      }),
+    this.setState({
+        step: 0,
+        moves: Game.defaultMoves(),
+        players: Game.defaultPlayers(),
+        hasWinner: false,
+        isCatsGame: false,
+      },
       () => this.computerMove()
     );
   }
 
-  toggleUserPlay() {
-    this.setState({userMove: !this.state.userMove});
-  }
-
   render() {
+    const moves = this.state.moves.filter((move) => {
+      return move.order >= 0;
+    }).sort((a, b) => {
+      return a.order - b.order;
+    });
+
     return (
-      <GameBoard
-        history={this.state.history}
-        stepNumber={this.state.stepNumber}
-        winner={this.state.winner}
-        catsGame={this.state.catsGame}
-        userMove={this.state.userMove}
-        currentShape={this.state.currentShape}
+      <UI
+        moves={moves}
+        currentMoves={moves.slice(0, this.state.step)}
+        lastMove={this.state.lastMove}
+        currentPlayer={this.currentPlayer()}
+        step={this.state.step}
+        isGameOver={this.isGameOver()}
+        hasWinner={this.state.hasWinner}
+        isCatsGame={this.state.isCatsGame}
+        isHumanMove={this.isHumanMove()}
         reset={() => this.reset()}
         jumpTo={(i) => this.jumpTo(i)}
         move={(x,y) => this.move(x,y)}
