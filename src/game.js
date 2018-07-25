@@ -45,10 +45,10 @@ const Game = class extends React.Component {
   }
 
   static defaultPlayers() {
-    let shapes = ['X', 'O'];
-    if (Math.floor(Math.random() * 1000) % 2 === 0) shapes.reverse();
+    let letters = ['X', 'O'];
+    if (Math.floor(Math.random() * 1000) % 2 === 0) letters.reverse();
 
-    let players = [new Player('You', shapes[0]), new Player('Computer', shapes[1], false)];
+    let players = [new Player('You', letters[0]), new Player('Computer', letters[1], false)];
     if (Math.floor(Math.random() * 1000) % 2 === 0) players.reverse();
 
     return players.slice();
@@ -125,11 +125,61 @@ const Game = class extends React.Component {
 
   computerMove() {
     if (this.isHumanMove() || this.isGameOver()) return;
+    const moves = this.state.moves.slice();
+    const availableMoves = moves.filter((move) => !move.value);
+    const player = this.currentPlayer();
+    let bestMove = null;
 
-    const availableMoves = this.state.moves.filter((move) => !move.value);
+    // Computer attempts to make a winning move by moving into an empty spot in a row where
+    // computer already has two moves
+    availableMoves.forEach(availableMove => {
+      const testMove = {...availableMove, value: player.letter};
+      let testMoves = moves.slice().concat(testMove);
 
-    const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-    if (move) setTimeout(() => this.move(move.x, move.y), 1000);
+      for (let i=0; i < Game.winningMoves.length; i++) {
+        const [a, b, c] = Game.winningMoves[i];
+        const moveA = testMoves.find((move) => move.value === player.letter && move.x === a.x && move.y === a.y);
+        const moveB = testMoves.find((move) => move.value === player.letter && move.x === b.x && move.y === b.y);
+        const moveC = testMoves.find((move) => move.value === player.letter && move.x === c.x && move.y === c.y);
+        if (moveA && moveB && moveC && moveA.value === moveB.value && moveA.value === moveC.value) {
+          bestMove = availableMove;
+        }
+      }
+    });
+
+    // Computer attempts to block a winning move by moving into an empty spot in a row where
+    // the human player already has two moves
+    if (!bestMove) {
+      let letter = (player.letter === 'X') ? 'O' : 'X';
+
+      availableMoves.forEach(availableMove => {
+        const testMove = {...availableMove, value: letter};
+        let testMoves = moves.slice().concat(testMove);
+
+        for (let i=0; i < Game.winningMoves.length; i++) {
+          const [a, b, c] = Game.winningMoves[i];
+          const moveA = testMoves.find((move) => move.value === letter && move.x === a.x && move.y === a.y);
+          const moveB = testMoves.find((move) => move.value === letter && move.x === b.x && move.y === b.y);
+          const moveC = testMoves.find((move) => move.value === letter && move.x === c.x && move.y === c.y);
+          if (moveA && moveB && moveC && moveA.value === moveB.value && moveA.value === moveC.value) {
+            bestMove = availableMove;
+          }
+        }
+      });
+    }
+
+    // If there are no clear winning or blocking moves,
+    // then the computer just chooses a move at random.
+    // We could add additional 'intelligence' by choosing
+    // a random move from a row where at least the computer
+    // has made one other move or just scrap all this logic
+    // in favor of the strategy employed by Newell and Simon's
+    // 1972 game: https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy
+    if (!bestMove) {
+      bestMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    }
+
+    setTimeout(() => this.move(bestMove.x, bestMove.y), 1000);
   }
 
   calculateWinningMoves(moves) {
@@ -212,9 +262,9 @@ const Game = class extends React.Component {
           onClick={(x, y) => this.move(x, y)}
         />
         <footer className="footer container-fluid">
-          <div class="row">
-            <div class="col-lg-6">Created by Mike Bradford</div>
-            <div class="col-lg-6 text-right"><a href="https://github.com/47primes/tic-tac-toe.js">View Source Code on Github</a></div>
+          <div className="row">
+            <div className="col-lg-6">Created by Mike Bradford</div>
+            <div className="col-lg-6 text-right"><a href="https://github.com/47primes/tic-tac-toe.js">View Source Code on Github</a></div>
           </div>
         </footer>
       </div>
