@@ -179,7 +179,7 @@ const Game = class extends React.Component {
 
     return (
       <div>
-        <Navbar>
+        <Navbar fluid={true}>
           <Navbar.Header>
             <Navbar.Brand>Tic-Tac-Toe</Navbar.Brand>
             <Navbar.Toggle />
@@ -211,6 +211,12 @@ const Game = class extends React.Component {
           step={this.state.step}
           onClick={(x, y) => this.move(x, y)}
         />
+        <footer className="footer container-fluid">
+          <div class="row">
+            <div class="col-lg-6">Created by Mike Bradford</div>
+            <div class="col-lg-6 text-right"><a href="https://github.com/47primes/tic-tac-toe.js">View Source Code on Github</a></div>
+          </div>
+        </footer>
       </div>
     );
   }
