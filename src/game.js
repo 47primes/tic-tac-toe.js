@@ -6,6 +6,9 @@ import StatusMessage from './statusMessage'
 import History from './history'
 import { Navbar, Nav, NavItem } from 'react-bootstrap'
 
+const STATS_STORAGE_ITEM_NAME = 'stats'; 
+const DEFAULT_STATS = { wins: 0, losses: 0, ties: 0, percentage: 0 };
+
 const Game = class extends React.Component {
   static winningMoves = [
     [
@@ -57,10 +60,13 @@ const Game = class extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      ...DEFAULT_STATS,
       step: 0,
       moves: Game.defaultMoves(),
       players: Game.defaultPlayers(),
     };
+
+    this.reset = this.reset.bind(this);
   }
 
   componentDidMount() {
@@ -81,6 +87,35 @@ const Game = class extends React.Component {
 
   isGameOver() {
     return this.state.hasWinner || this.state.isCatsGame;
+  }
+
+  getStats() {
+    return JSON.parse(localStorage.getItem(STATS_STORAGE_ITEM_NAME));
+  }
+
+  setStats(object) {
+    localStorage.setItem(STATS_STORAGE_ITEM_NAME, JSON.stringify(object));
+  }
+
+  incrementStats() {
+    const stats = this.getStats() || { ...DEFAULT_STATS };
+    
+    if (this.isGameOver()) {
+      if (this.state.isCatsGame) {
+        stats.ties += 1;
+      } else if (this.isHumanMove()) {
+        stats.wins += 1;
+      } else {
+        stats.losses += 1;
+      }
+
+      stats.percentage = Number.parseFloat(
+                          stats.wins/(stats.wins + stats.losses + stats.ties)*100
+                        ).toPrecision(3);
+
+      this.setStats(stats);
+      this.setState(stats);
+    }
   }
 
   move(x,y) {
@@ -120,7 +155,11 @@ const Game = class extends React.Component {
       newState.players = this.state.players.reverse();
     }
 
-    this.setState(newState, () => this.computerMove());
+    this.setState(newState, () => {
+        this.incrementStats();
+        this.computerMove();
+      }
+    );
   }
 
   computerMove() {
@@ -227,6 +266,8 @@ const Game = class extends React.Component {
       return a.order - b.order;
     });
 
+    const { wins, losses, ties, percentage } = this.state;
+
     return (
       <div>
         <Navbar fluid={true}>
@@ -236,30 +277,35 @@ const Game = class extends React.Component {
           </Navbar.Header>
           <Navbar.Collapse>
             <Nav>
-              <NavItem onClick={() => this.reset()}>New Game</NavItem>
+              <NavItem onClick={ this.reset }>New Game</NavItem>
+            </Nav>
+            <Nav>
+              <History
+                showHistory={ this.isGameOver() }
+                moves={ moves }
+                step={ this.state.step }
+                currentPlayer={ this.currentPlayer() }
+                jumpTo={ (i) => this.jumpTo(i) }
+              />
             </Nav>
             <Nav pullRight>
-              <History
-                showHistory={this.isGameOver()}
-                moves={moves}
-                step={this.state.step}
-                currentPlayer={this.currentPlayer()}
-                jumpTo={(i) => this.jumpTo(i)}
-              />
+              <NavItem disabled>
+                Record: { wins } - { losses } - { ties } ({ percentage }%)
+              </NavItem>
             </Nav>
           </Navbar.Collapse>
         </Navbar>
         <StatusMessage
-          hasWinner={this.state.hasWinner}
-          isCatsGame={this.state.isCatsGame}
-          currentPlayer={this.currentPlayer()}
+          hasWinner={ this.state.hasWinner }
+          isCatsGame={ this.state.isCatsGame }
+          currentPlayer={ this.currentPlayer() }
         />
         <Board
-          moves={moves.slice(0, this.state.step)}
-          totalMoves={moves.length}
-          isHumanMove={this.isHumanMove()}
-          step={this.state.step}
-          onClick={(x, y) => this.move(x, y)}
+          moves={ moves.slice(0, this.state.step) }
+          totalMoves={ moves.length }
+          isHumanMove={ this.isHumanMove() }
+          step={ this.state.step }
+          onClick={ (x, y) => this.move(x, y) }
         />
         <footer className="footer container-fluid">
           <div className="row">
